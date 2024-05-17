@@ -1,1 +1,2 @@
-# itu-swa-architecture-recovery
+# Architecture recovery of Flask
+
