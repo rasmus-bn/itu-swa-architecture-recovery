@@ -8,6 +8,9 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 gitpython = "^3.1.43"
+networkx = "^3.3"
+matplotlib = "^3.9.0"
+numpy = "^1.26.4"
 
 
 [build-system]
