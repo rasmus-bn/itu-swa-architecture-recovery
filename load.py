@@ -143,7 +143,7 @@ class RepoLoader:
             self.clone_path.mkdir(exist_ok=True, parents=True)
         is_empty = not os.listdir(self.clone_path)
         if is_empty:
-            Repo.clone_from(repo_url, self.clone_path)
+            Repo.clone_from(self.repo_url, self.clone_path)
 
         self.files = self._load_python_files(self.src_path)
         for file in self.files:

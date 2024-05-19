@@ -49,5 +49,6 @@ vis.visualize(
     # ext_cmap="gnuplot",
     ext_color="firebrick1",
     fontsize=25,
+    arrow_head_size=0.5,
     # rankdir="LR",
 )

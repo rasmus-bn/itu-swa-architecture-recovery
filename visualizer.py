@@ -126,6 +126,7 @@ class ModuleVisualizer:
         node_size_adjuster=1,
         fontsize=14,
         padding=0.8,
+        arrow_head_size=1,
         **kwargs,
     ):
         graph = pgv.AGraph(
@@ -209,7 +210,7 @@ class ModuleVisualizer:
                         module.id,
                         weight=1,
                         color="blue",
-                        arrowsize=0.5,
+                        arrowsize=arrow_head_size,
                     )
                 if (
                     module.mod_type == ModuleTypes.EXTERNAL
@@ -220,7 +221,7 @@ class ModuleVisualizer:
                         module.id,
                         weight=1,
                         color="red",
-                        arrowsize=0.5,
+                        arrowsize=arrow_head_size,
                     )
 
         graph.layout(prog=graph_layout)
