@@ -4,13 +4,15 @@ from visualizer import ModuleVisualizer
 from loader import RepoLoader
 
 
-repo_url = "https://github.com/pallets/flask.git"
 local_repo_root = Path(__file__).parent.parent.resolve()
+
+repo_url = "https://github.com/pallets/flask.git"
+
 cloned_path = local_repo_root / "subject_repo"
-files_path = cloned_path / "src"
+src_path = cloned_path / "src"
 test_path = cloned_path / "tests"
 
-repo = RepoLoader(repo_url, cloned_path, files_path, test_path)
+repo = RepoLoader(repo_url, cloned_path, src_path, test_path)
 repo.load_repo()
 
 vis = ModuleVisualizer(repo)
