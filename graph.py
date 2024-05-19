@@ -83,6 +83,7 @@ class Graph:
 
         # Draw the graph
         pos = nx.spring_layout(self._graph)
+
         nx.draw(
             self._graph,
             pos,

@@ -15,7 +15,7 @@ class PythonFile:
         if self.name == "__init__.py":
             self.module_id = ".".join(list(relative_path.parts[:-1]))
         self.content = full_path.read_text()
-        self.imports = None
+        self.imports: list[any] = None
         self._ast: ast.AST = None
         self._loc = None
 
@@ -29,7 +29,11 @@ class PythonFile:
     def loc(self) -> int:
         if not self._loc:
             self._loc = len(
-                [line for line in self.content.splitlines() if self.is_loc(line)]
+                [
+                    line
+                    for line in self.content.splitlines()
+                    if self.is_loc(line)
+                ]
             )
         return self._loc
 
@@ -46,24 +50,31 @@ class PythonFile:
             return False
         return True
 
-    def load_imports(self, module_store: dict):
+    def load_imports(self, module_store: dict) -> list[any]:
+        if self.imports:
+            return self.imports
         self.imports = []
 
-        def create_if_not_exist(module_name):
-            module_name = module_name.split(".")[0]
+        def create_if_not_exist(module_name, mod_type):
+            if mod_type == ModuleTypes.EXTERNAL:
+                module_name = module_name.split(".")[0]
             if module_name not in module_store:
-                module_store[module_name] = Module(module_name, ModuleTypes.EXTERNAL)
+                module_store[module_name] = Module(module_name, mod_type)
             return module_store[module_name]
 
         for node in ast.walk(self.ast):
+            module = None
+
             if isinstance(node, ast.Import):
                 for module_import in node.names:
-                    module = create_if_not_exist(module_import.name)
-                    self.imports.append(module)
+                    module = create_if_not_exist(
+                        module_import.name, ModuleTypes.EXTERNAL
+                    )
             elif isinstance(node, ast.ImportFrom):
                 if node.level == 0:
-                    module = create_if_not_exist(node.module)
-                    self.imports.append(module)
+                    module = create_if_not_exist(
+                        node.module, ModuleTypes.EXTERNAL
+                    )
                 else:
                     relative_path = ".".join(
                         list(self.relative_path.parts[: -node.level])
@@ -72,7 +83,14 @@ class PythonFile:
                         module_name = f"{relative_path}.{node.module}"
                     else:
                         module_name = relative_path
-                    self.imports.append(module_store[module_name])
+                    module = create_if_not_exist(
+                        module_name, ModuleTypes.INTERNAL
+                    )
+
+            if module:
+                self.imports.append(module)
+                module.register_import()
+
         return self.imports
 
 
@@ -83,10 +101,16 @@ class ModuleTypes:
 
 
 class Module:
-    def __init__(self, id: str, mod_type: str, python_file: PythonFile = None) -> any:
+    def __init__(
+        self, id: str, mod_type: str, python_file: PythonFile = None
+    ) -> any:
         self.id = id
         self.mod_type = mod_type
         self.python_file = python_file
+        self.import_count = 0
+
+    def register_import(self):
+        self.import_count += 1
 
 
 class RepoLoader:
@@ -104,7 +128,7 @@ class RepoLoader:
 
         self.files: list[PythonFile] = []
         self.test_files: list[PythonFile] = []
-        self.modules_store: dict = {}
+        self.modules_store: dict[str, Module] = {}
 
     def _load_python_files(self, path):
         files = []
@@ -154,27 +178,84 @@ if __name__ == "__main__":
     module_names.sort()
     module_names.reverse()
 
-    # for module in module_names:
-    #     print(module)
-    from graph import Graph
+    include_internal_nodes = False
+    include_external_nodes = True
 
-    graph = Graph("output_file.png", directed=True)
-    for module_id in repo.modules_store.keys():
-        graph.add_node(module_id, size=1000, color="blue", weight=1)
+    import pygraphviz as pgv
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import rgb2hex
+
+    graph = pgv.AGraph(directed=True, strict=True, rankdir="LR", pad=0.8)
+    min_imports = min(
+        [module.import_count for module in repo.modules_store.values()]
+    )
+    max_imports = max(
+        [module.import_count for module in repo.modules_store.values()]
+    )
+
+    def normalize(value):
+        return (value - min_imports) / (max_imports - min_imports)
+
+    def get_color(value):
+        adjuster = 3  # lower = more white
+        norm = normalize(value)
+        cmap = plt.get_cmap("plasma")
+        color = cmap(norm)
+        color = list(color)
+        for i in range(3):
+            color[i] = color[i] + ((1 - color[i]) / adjuster)
+        return rgb2hex(tuple(color))
+
+    node_scaler = 5
+
+    def add_node(module: Module):
+        color = get_color(module.import_count)
+        node_size = normalize(module.import_count) * node_scaler
+        node_size = node_scaler / 7
+        graph.add_node(
+            module.id,
+            fixedsize="true",
+            height=node_size,
+            width=node_size,
+            color=color,
+            fillcolor=color,
+            style="filled",
+            shape="circle"
+            if module.mod_type == ModuleTypes.INTERNAL
+            else "box",
+        )
+
+    for module_id, module in repo.modules_store.items():
+        if module.mod_type == ModuleTypes.INTERNAL:
+            add_node(module)
+        if module.mod_type == ModuleTypes.EXTERNAL and include_external_nodes:
+            add_node(module)
+
+    def add_edge(consumer, owner, weight, color):
+        graph.add_edge(
+            consumer,
+            owner,
+            weight=weight,
+            color=color,
+            arrowhead="normal",
+            arrowsize=0.5,
+        )
 
     for file in repo.files:
-        for module_id in file.imports:
-            module_id: Module
-            if module_id.mod_type == ModuleTypes.INTERNAL:
-                graph.add_node(module_id.id, size=1000, color="blue", weight=1)
-            else:
-                graph.add_node(module_id.id, size=1000, color="red", weight=1)
+        for module in file.imports:
+            module: Module
+            if (
+                module.mod_type == ModuleTypes.INTERNAL
+                and include_internal_nodes
+            ):
+                add_edge(file.module_id, module.id, 5, "blue")
+            if (
+                module.mod_type == ModuleTypes.EXTERNAL
+                and include_external_nodes
+            ):
+                add_edge(file.module_id, module.id, 5, "red")
 
-            graph.add_edge(file.module_id, module_id.id, weight=1, color="black")
+    graph.layout(prog="fdp")
+    graph.draw("output_file3.png")
 
-    graph.plot()
-    # print(file.module_name)
-    # file.load_imports()
-    # print(sum([file.loc for file in repo.files]))
-    # # print(type(repo.files[2].ast))
-    # print(repo.files)
+    print("done")
