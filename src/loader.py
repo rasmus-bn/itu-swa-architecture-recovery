@@ -53,7 +53,6 @@ class PythonFile:
     def load_imports(self, module_store: dict) -> list[any]:
         if self.imports:
             return self.imports
-        self.imports = []
 
         def create_if_not_exist(module_name, mod_type):
             if mod_type == ModuleTypes.EXTERNAL:
@@ -62,8 +61,11 @@ class PythonFile:
                 module_store[module_name] = Module(module_name, mod_type)
             return module_store[module_name]
 
+        self.imports: list[Module] = []
+        current_imports: set[str] = set()
+
         for node in ast.walk(self.ast):
-            module = None
+            module: Module = None
 
             if isinstance(node, ast.Import):
                 for module_import in node.names:
@@ -88,6 +90,9 @@ class PythonFile:
                     )
 
             if module:
+                if module.id in current_imports:
+                    continue
+                current_imports.add(module.id)
                 self.imports.append(module)
                 module.register_import()
 

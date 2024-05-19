@@ -24,18 +24,46 @@ vis.visualize(
     node_size_adjuster=1.7,
     fontsize=25,
     padding=1.8,
-    # rankdir="BT",
 )
 vis.visualize(
-    output_file=artifacts / "external-dependencies.png",
+    output_file=artifacts / "external-dependencies--unfiltered.png",
     graph_layout="fdp",
     include_internal_dependencies=False,
     int_color="dodgerblue",
     int_size=vis.mean_node_size,
-    # int_xlabels=True,
     include_external_dependencies=True,
-    fontsize=20,
-    rankdir="LR",
+    fontsize=22,
+)
+vis.visualize(
+    output_file=artifacts / "external-dependencies--more-than-10-imports.png",
+    graph_layout="fdp",
+    include_internal_dependencies=False,
+    int_color="dodgerblue",
+    int_size=vis.mean_node_size,
+    include_external_dependencies=True,
+    fontsize=15,
+    min_imports_threshold=11,
+)
+vis.visualize(
+    output_file=artifacts / "external-dependencies--3-to-10-imports.png",
+    graph_layout="fdp",
+    include_internal_dependencies=False,
+    int_color="dodgerblue",
+    int_size=vis.mean_node_size,
+    include_external_dependencies=True,
+    fontsize=15,
+    min_imports_threshold=4,
+    max_imports_threshold=10,
+)
+vis.visualize(
+    output_file=artifacts / "external-dependencies--less-than-3-imports.png",
+    graph_layout="fdp",
+    include_internal_dependencies=False,
+    int_color="dodgerblue",
+    int_size=vis.mean_node_size,
+    include_external_dependencies=True,
+    fontsize=18,
+    max_imports_threshold=3,
 )
 vis.visualize(
     output_file=artifacts / "spaghetti-dependencies.png",
@@ -48,7 +76,9 @@ vis.visualize(
     include_external_dependencies=True,
     # ext_cmap="gnuplot",
     ext_color="firebrick1",
-    fontsize=25,
-    arrow_head_size=0.5,
+    fontsize=15,
+    arrow_head_size=0.7,
+    # min_imports_threshold=4,
+    # max_imports_threshold=10,
     # rankdir="LR",
 )

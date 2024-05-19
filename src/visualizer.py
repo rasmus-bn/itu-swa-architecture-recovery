@@ -128,6 +128,8 @@ class ModuleVisualizer:
         fontsize=14,
         padding=0.8,
         arrow_head_size=1,
+        max_imports_threshold=None,
+        min_imports_threshold=None,
         **kwargs,
     ):
         graph = pgv.AGraph(
@@ -175,6 +177,15 @@ class ModuleVisualizer:
         #     pos=legend_pos,
         # )
 
+        def _exceeds_threshold(module_import_count):
+            return (
+                max_imports_threshold
+                and module_import_count > max_imports_threshold
+            ) or (
+                min_imports_threshold
+                and module_import_count < min_imports_threshold
+            )
+
         for module in self.int_modules:
             self._add_node(
                 graph,
@@ -188,6 +199,9 @@ class ModuleVisualizer:
             )
         if include_external_dependencies:
             for module in self.ext_modules:
+                if _exceeds_threshold(module.import_count):
+                    continue
+
                 self._add_node(
                     graph,
                     module,
@@ -202,6 +216,7 @@ class ModuleVisualizer:
         for file in self.repo.files:
             for module in file.imports:
                 module: Module
+
                 if (
                     module.mod_type == ModuleTypes.INTERNAL
                     and include_internal_dependencies
@@ -217,6 +232,16 @@ class ModuleVisualizer:
                     module.mod_type == ModuleTypes.EXTERNAL
                     and include_external_dependencies
                 ):
+                    if (
+                        max_imports_threshold
+                        and module.import_count > max_imports_threshold
+                    ):
+                        continue
+                    if (
+                        min_imports_threshold
+                        and module.import_count < min_imports_threshold
+                    ):
+                        continue
                     graph.add_edge(
                         file.module_id,
                         module.id,
