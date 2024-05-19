@@ -1,20 +1,20 @@
 from pathlib import Path
 
 from visualizer import ModuleVisualizer
-from load import RepoLoader
+from loader import RepoLoader
 
 
 repo_url = "https://github.com/pallets/flask.git"
-script_path = Path(__file__).parent.resolve()
-subject_path = script_path / "subject_repo"
-files_path = subject_path / "src"
-test_path = subject_path / "tests"
+local_repo_root = Path(__file__).parent.parent.resolve()
+cloned_path = local_repo_root / "subject_repo"
+files_path = cloned_path / "src"
+test_path = cloned_path / "tests"
 
-repo = RepoLoader(repo_url, subject_path, files_path, test_path)
+repo = RepoLoader(repo_url, cloned_path, files_path, test_path)
 repo.load_repo()
 
 vis = ModuleVisualizer(repo)
-artifacts = script_path / "artifacts"
+artifacts = local_repo_root / "artifacts"
 artifacts.mkdir(exist_ok=True, parents=True)
 vis.visualize(
     output_file=artifacts / "internal-dependencies.png",

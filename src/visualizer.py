@@ -1,7 +1,8 @@
+from loader import Module, ModuleTypes, RepoLoader
+
 import pygraphviz as pgv
 import matplotlib.pyplot as plt
 from matplotlib.colors import rgb2hex
-from load import Module, ModuleTypes, RepoLoader
 
 
 class Normalizer:
